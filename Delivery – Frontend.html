@@ -70,9 +70,9 @@ const API = {
   useMock: false, // troque para false quando seus serviços estiverem no ar
   base: {
     cardapio:   'http://localhost:8001',
-    carrinho:   'http://localhost:8002',
-    pedido:     'http://localhost:8003',
-    pagamento:  'http://localhost:8004',
+    carrinho:   'http://localhost:8002/api',
+    pedido:     'http://localhost:8002/api',
+    pagamento:  'http://localhost:8003',
     avaliacoes: 'http://localhost:8005'
     
   }
@@ -90,7 +90,7 @@ const DB = {
     {id:7,nome:'Refrigerante Lata',desc:'350ml, vários sabores.',preco:6,cat:'Bebidas',e:'🥤'},
     {id:8,nome:'Pudim de Leite',desc:'Fatia generosa com calda de caramelo.',preco:12,cat:'Sobremesas',e:'🍮'}
   ],
-  pedidos: [], avaliacoes: [], n: 100
+  pedidos: [], avaliacoes: [], carrinhos: {}, n: 100, c: 0
 };
 const STATUS = ['Recebido','Preparando','A caminho','Entregue'];
 setInterval(()=>{ if(!API.useMock) return;
@@ -100,9 +100,27 @@ const wait = v => new Promise(r=>setTimeout(()=>r(structuredClone(v)),250));
 async function mock(svc,path,o={}){
   const body = o.body ? JSON.parse(o.body) : null, m = o.method||'GET';
   if(svc==='cardapio' && path==='/itens') return wait(DB.itens);
-  if(svc==='pedido' && path==='/pedidos' && m==='POST'){
-    const p={id:++DB.n,itens:body.itens,total:body.total,endereco:body.endereco,status:'Aguardando pagamento',pago:false,criado:Date.now()};
+  if(svc==='carrinho' && path==='/carrinhos' && m==='POST'){
+    const c={id:++DB.c,clienteId:body.clienteId,itemIds:body.itemIds}; DB.carrinhos[c.id]=c; return wait(c);
+  }
+  const mc = path.match(/^\/carrinhos\/(\d+)$/);
+  if(svc==='carrinho' && mc){
+    const c=DB.carrinhos[mc[1]]; if(!c) throw new Error('Carrinho '+mc[1]+' não encontrado');
+    if(m==='PUT'){ c.clienteId=body.clienteId; c.itemIds=body.itemIds; }
+    return wait(c);
+  }
+  const mf = path.match(/^\/carrinhos\/(\d+)\/fechar$/);
+  if(svc==='carrinho' && mf && m==='POST'){
+    const c=DB.carrinhos[mf[1]]; if(!c) throw new Error('Carrinho '+mf[1]+' não encontrado');
+    if(!c.itemIds.length) throw new Error('Não é possível fechar um carrinho vazio');
+    if(DB.pedidos.some(x=>x.carrinhoId===c.id)) throw new Error('Já existe um pedido para o carrinho '+c.id);
+    const p={id:++DB.n,carrinhoId:c.id,pago:false,status:'Aguardando pagamento',endereco:body&&body.endereco,observacao:body&&body.observacao,itemIds:[...c.itemIds]};
     DB.pedidos.unshift(p); return wait(p);
+  }
+  const mp = path.match(/^\/pedidos\/(\d+)\/pagamento$/);
+  if(svc==='pedido' && mp && m==='PATCH'){
+    const p=DB.pedidos.find(x=>x.id==mp[1]); if(!p) throw new Error('Pedido '+mp[1]+' não encontrado');
+    p.pago=body.pago; p.status=body.pago?'Recebido':'Aguardando pagamento'; return wait(p);
   }
   if(svc==='pedido' && path==='/pedidos') return wait(DB.pedidos);
   if(svc==='pagamento' && path==='/pagamentos' && m==='POST'){
@@ -129,7 +147,37 @@ const total = () => cartList().reduce((a,i)=>a+i.preco*i.q,0);
 const count = () => Object.values(S.cart).reduce((a,b)=>a+b,0);
 const route = () => (location.hash||'#cardapio').slice(1);
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2000);}
-function add(id,d){ S.cart[id]=(S.cart[id]||0)+d; if(S.cart[id]<=0) delete S.cart[id]; render(); }
+/* ========= CARRINHO (mock ou serviço Kotlin, conforme API.useMock) ========= */
+const CLIENTE_ID = 1; // provisório, o front ainda não tem login
+const CHAVE_CARRINHO = 'carrinhoId_' + (API.useMock ? 'mock' : 'api'); // um id salvo por modo
+let carrinhoId = null, pedidoPendente = null, fila = Promise.resolve();
+
+function itemIdsDoCarrinho(){
+  return Object.entries(S.cart).flatMap(([id,q]) => Array(q).fill(+id));
+}
+function limparCarrinho(){ carrinhoId = null; pedidoPendente = null; localStorage.removeItem(CHAVE_CARRINHO); }
+function syncCarrinho(){
+  fila = fila.then(async () => {   // a fila evita criar 2 carrinhos com cliques rápidos
+    const body = JSON.stringify({clienteId: CLIENTE_ID, itemIds: itemIdsDoCarrinho()});
+    try{
+      if(carrinhoId === null){
+        const c = await api('carrinho','/carrinhos',{method:'POST',body});
+        carrinhoId = c.id; localStorage.setItem(CHAVE_CARRINHO, c.id);
+      } else {
+        await api('carrinho','/carrinhos/'+carrinhoId,{method:'PUT',body});
+      }
+    }catch(x){ toast('Erro ao salvar carrinho: '+x.message); }
+  });
+}
+async function loadCarrinho(){        // recupera o carrinho ao recarregar a página
+  const salvo = localStorage.getItem(CHAVE_CARRINHO); if(!salvo) return;
+  try{
+    const c = await api('carrinho','/carrinhos/'+salvo);
+    carrinhoId = c.id; S.cart = {};
+    c.itemIds.forEach(id => S.cart[id] = (S.cart[id]||0) + 1);
+  }catch(e){ limparCarrinho(); }
+}
+function add(id,d){ S.cart[id]=(S.cart[id]||0)+d; if(S.cart[id]<=0) delete S.cart[id]; render(); syncCarrinho(); }
 
 /* ========= TELAS ========= */
 const V = {
@@ -201,10 +249,19 @@ document.addEventListener('submit',async e=>{
   if(e.target.id==='pay'){
     const btn=document.getElementById('paybtn'),err=document.getElementById('perr');btn.disabled=true;err.textContent='';
     try{
-      const itens=cartList().map(i=>({id:i.id,nome:i.nome,preco:i.preco,q:i.q}));
-      const ped=await api('pedido','/pedidos',{method:'POST',body:JSON.stringify({itens,total:total(),endereco:document.getElementById('end').value,obs:document.getElementById('obs').value})});
-      await api('pagamento','/pagamentos',{method:'POST',body:JSON.stringify({pedidoId:ped.id,valor:total(),metodo:e.target.m.value})});
-      S.cart={};await loadOrders();toast('Pedido #'+ped.id+' confirmado!');location.hash='pedidos';
+      await fila;                                   // espera o carrinho terminar de salvar
+      if(carrinhoId===null) throw new Error('carrinho não salvo, adicione os itens de novo');
+      if(!pedidoPendente){                          // este carrinho já virou pedido? (ex.: a página foi recarregada)
+        const existente=(await api('pedido','/pedidos')).find(p=>p.carrinhoId===carrinhoId);
+        pedidoPendente=existente||await api('carrinho','/carrinhos/'+carrinhoId+'/fechar',{method:'POST',body:JSON.stringify({endereco:document.getElementById('end').value,observacao:document.getElementById('obs').value})});
+      }
+      const ped=pedidoPendente;
+      if(!ped.pago){
+        try{ await api('pagamento','/pagamentos',{method:'POST',body:JSON.stringify({pedidoId:ped.id,valor:total(),metodo:e.target.m.value})}); }
+        catch(x){ if(!String(x.message).startsWith('Erro 409')) throw x; }   // 409 = pedido já pago no serviço de pagamento
+        await api('pedido','/pedidos/'+ped.id+'/pagamento',{method:'PATCH',body:JSON.stringify({pago:true})});
+      }
+      limparCarrinho();S.cart={};await loadOrders();toast('Pedido #'+ped.id+' confirmado!');location.hash='pedidos';
     }catch(x){err.textContent='Não foi possível concluir: '+x.message;btn.disabled=false;}
   }
   if(e.target.classList.contains('rv')){
@@ -214,10 +271,19 @@ document.addEventListener('submit',async e=>{
     catch(x){toast('Erro ao enviar: '+x.message);}
   }
 });
-async function loadOrders(){ S.orders=await api('pedido','/pedidos'); }
+function pedidoDoServico(p){            // formato do Kotlin (itemIds) -> formato das telas (itens, total)
+  const cont = {};
+  (p.itemIds||[]).forEach(id => cont[id] = (cont[id]||0) + 1);
+  const itens = Object.entries(cont).map(([id,n]) => {
+    const it = S.itens.find(i => i.id == id) || {nome:'Item '+id, preco:0};
+    return {id:+id, nome:it.nome, preco:it.preco, q:n};
+  });
+  return {id:p.id, status:p.status, pago:p.pago, itens, total:itens.reduce((a,i)=>a+i.preco*i.q,0)};
+}
+async function loadOrders(){ S.orders=(await api('pedido','/pedidos')).map(pedidoDoServico); }
 async function boot(){
   S.loading=true;S.erro='';render();
-  try{ S.itens=await api('cardapio','/itens'); await loadOrders(); S.reviews=await api('avaliacoes','/avaliacoes'); }
+  try{ S.itens=await api('cardapio','/itens'); await loadCarrinho(); await loadOrders(); S.reviews=await api('avaliacoes','/avaliacoes'); }
   catch(x){S.erro='Não conseguimos carregar os dados: '+x.message;}
   S.loading=false;render();
 }
@@ -226,3 +292,4 @@ boot();
 </script>
 </body>
 </html>
+ 

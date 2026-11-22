@@ -67,12 +67,14 @@ input,select,textarea{width:100%;font:inherit;padding:10px 12px;border:1.5px sol
 <script>
 /* ========= CONFIGURAÇÃO DA API (um endereço por microsserviço) ========= */
 const API = {
-  useMock: true, // troque para false quando seus serviços estiverem no ar
+  useMock: false, // troque para false quando seus serviços estiverem no ar
   base: {
     cardapio:   'http://localhost:8001',
-    pedido:     'http://localhost:8002',
-    pagamento:  'http://localhost:8003',
-    avaliacoes: 'http://localhost:8004'
+    carrinho:   'http://localhost:8002',
+    pedido:     'http://localhost:8003',
+    pagamento:  'http://localhost:8004',
+    avaliacoes: 'http://localhost:8005'
+    
   }
 };
 

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Delivery – Frontend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3ee;--card:#fff;--ink:#16241c;--mute:#5d6e63;--line:#d3ddd5;--acc:#e4442f;--acc2:#ffc93c;--ok:#1f8a4c;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a14;--card:#19261e;--ink:#eaf2ec;--mute:#9db0a3;--line:#2b3b31;--acc:#ff6a52;--ok:#4cc27d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101a14;--card:#19261e;--ink:#eaf2ec;--mute:#9db0a3;--line:#2b3b31;--acc:#ff6a52;--ok:#4cc27d;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;line-height:1.45}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;max-width:960px;margin:auto}
+.logo{font-weight:800;font-size:1.5rem;letter-spacing:-.03em}
+.logo i{font-style:normal;background:var(--acc2);color:#16241c;padding:0 8px;border-radius:8px 14px 8px 14px;margin-right:4px}
+nav{display:flex;gap:4px;flex-wrap:wrap;max-width:960px;margin:0 auto;padding:0 20px 8px}
+nav a{padding:8px 14px;border-radius:99px;text-decoration:none;color:var(--mute);font-weight:600}
+nav a.on{background:var(--ink);color:var(--bg)}
+nav b{background:var(--acc);color:#fff;border-radius:99px;padding:0 7px;font-size:.8rem;margin-left:4px}
+main{max-width:960px;margin:auto;padding:12px 20px 60px}
+h1{font-size:2.3rem;letter-spacing:-.03em;margin:8px 0 4px;font-weight:800}
+.sub{color:var(--mute);margin:0 0 18px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.chip{border:1.5px solid var(--line);background:none;color:var(--ink);padding:6px 14px;border-radius:99px;font:inherit;cursor:pointer}
+.chip.on{background:var(--acc2);border-color:var(--acc2);color:#16241c;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 18px 6px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.item .e{font-size:3rem;line-height:1}
+.item h3{margin:4px 0 0;font-size:1.1rem}.item p{margin:0;color:var(--mute);font-size:.92rem;flex:1}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.price{font-weight:800;font-size:1.15rem}
+button.p,button.s{font:inherit;font-weight:600;border:0;border-radius:10px;padding:9px 16px;cursor:pointer}
+button.p{background:var(--acc);color:#fff}button.s{background:none;border:1.5px solid var(--line);color:var(--ink);padding:4px 11px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+.line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.line:last-child{border:0}
+.qty{display:flex;align-items:center;gap:10px}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+label{display:block;font-weight:600;margin:12px 0 4px}
+input,select,textarea{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.pay{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.pay label{margin:0;border:1.5px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.pay input{width:auto}
+.pay label:has(input:checked){border-color:var(--acc);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.steps{display:flex;gap:6px;margin:12px 0 4px}
+.steps span{flex:1;height:8px;border-radius:9px;background:var(--line)}
+.steps span.d{background:var(--ok)}
+.tag{font-weight:700;color:var(--ok)}
+.stars{display:flex;gap:2px}.stars button{background:none;border:0;font-size:1.8rem;cursor:pointer;color:var(--line);padding:0}.stars button.on{color:var(--acc2)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+.err{color:var(--acc);font-weight:600}
+</style>
+</head>
+<body>
+<header><div class="logo"><i>Entrega</i>Já</div><small id="mode" style="color:var(--mute)"></small></header>
+<nav id="nav"></nav>
+<main id="app"></main>
+<div id="toast" role="status"></div>
+
+<script>
+/* ========= CONFIGURAÇÃO DA API (um endereço por microsserviço) ========= */
+const API = {
+  useMock: true, // troque para false quando seus serviços estiverem no ar
+  base: {
+    cardapio:   'http://localhost:8001',
+    pedido:     'http://localhost:8002',
+    pagamento:  'http://localhost:8003',
+    avaliacoes: 'http://localhost:8004'
+  }
+};
+
+/* ========= MOCK (simula o backend para o front funcionar sozinho) ========= */
+const DB = {
+  itens: [
+    {id:1,nome:'X-Burger da Casa',desc:'Pão brioche, blend 160g, queijo e molho especial.',preco:28.9,cat:'Lanches',e:'🍔'},
+    {id:2,nome:'X-Frango Crocante',desc:'Frango empanado, alface, tomate e maionese verde.',preco:26.5,cat:'Lanches',e:'🥪'},
+    {id:3,nome:'Pizza Calabresa',desc:'Média, 8 fatias, cebola roxa e azeitona.',preco:46,cat:'Pizzas',e:'🍕'},
+    {id:4,nome:'Pizza Marguerita',desc:'Média, 8 fatias, tomate, mussarela e manjericão.',preco:44,cat:'Pizzas',e:'🍕'},
+    {id:5,nome:'Combo Sushi 20 peças',desc:'Salmão, atum e kani, com shoyu e gengibre.',preco:59.9,cat:'Japonês',e:'🍣'},
+    {id:6,nome:'Suco de Caju 500ml',desc:'Natural, sem açúcar.',preco:9,cat:'Bebidas',e:'🧃'},
+    {id:7,nome:'Refrigerante Lata',desc:'350ml, vários sabores.',preco:6,cat:'Bebidas',e:'🥤'},
+    {id:8,nome:'Pudim de Leite',desc:'Fatia generosa com calda de caramelo.',preco:12,cat:'Sobremesas',e:'🍮'}
+  ],
+  pedidos: [], avaliacoes: [], n: 100
+};
+const STATUS = ['Recebido','Preparando','A caminho','Entregue'];
+setInterval(()=>{ if(!API.useMock) return;
+  let ch=false; DB.pedidos.forEach(p=>{ const i=STATUS.indexOf(p.status); if(p.pago && i<3){p.status=STATUS[i+1];ch=true;} });
+  if(ch && ['pedidos'].includes(route())) render(); },7000);
+const wait = v => new Promise(r=>setTimeout(()=>r(structuredClone(v)),250));
+async function mock(svc,path,o={}){
+  const body = o.body ? JSON.parse(o.body) : null, m = o.method||'GET';
+  if(svc==='cardapio' && path==='/itens') return wait(DB.itens);
+  if(svc==='pedido' && path==='/pedidos' && m==='POST'){
+    const p={id:++DB.n,itens:body.itens,total:body.total,endereco:body.endereco,status:'Aguardando pagamento',pago:false,criado:Date.now()};
+    DB.pedidos.unshift(p); return wait(p);
+  }
+  if(svc==='pedido' && path==='/pedidos') return wait(DB.pedidos);
+  if(svc==='pagamento' && path==='/pagamentos' && m==='POST'){
+    const p=DB.pedidos.find(x=>x.id===body.pedidoId); p.pago=true; p.status='Recebido'; p.metodo=body.metodo;
+    return wait({ok:true,pedidoId:p.id});
+  }
+  if(svc==='avaliacoes' && path==='/avaliacoes' && m==='POST'){ DB.avaliacoes.push(body); return wait(body); }
+  if(svc==='avaliacoes' && path==='/avaliacoes') return wait(DB.avaliacoes);
+  throw new Error('Rota não encontrada no mock: '+path);
+}
+async function api(svc,path,o){
+  if(API.useMock) return mock(svc,path,o);
+  const r = await fetch(API.base[svc]+path,{headers:{'Content-Type':'application/json'},...o});
+  if(!r.ok) throw new Error('Erro '+r.status+' em '+svc);
+  return r.json();
+}
+
+/* ========= ESTADO ========= */
+const S = {itens:[],cart:{},cat:'Todos',orders:[],reviews:[],loading:true,erro:''};
+const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cartList = () => Object.entries(S.cart).map(([id,q])=>({...S.itens.find(i=>i.id==id),q}));
+const total = () => cartList().reduce((a,i)=>a+i.preco*i.q,0);
+const count = () => Object.values(S.cart).reduce((a,b)=>a+b,0);
+const route = () => (location.hash||'#cardapio').slice(1);
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2000);}
+function add(id,d){ S.cart[id]=(S.cart[id]||0)+d; if(S.cart[id]<=0) delete S.cart[id]; render(); }
+
+/* ========= TELAS ========= */
+const V = {
+cardapio(){
+  const cats=['Todos',...new Set(S.itens.map(i=>i.cat))];
+  const list=S.itens.filter(i=>S.cat==='Todos'||i.cat===S.cat);
+  return `<h1>O que você quer comer hoje?</h1><p class="sub">Escolha os itens e finalize em poucos toques.</p>
+  <div class="chips">${cats.map(c=>`<button class="chip ${c===S.cat?'on':''}" data-cat="${c}">${c}</button>`).join('')}</div>
+  <div class="grid">${list.map(i=>`<article class="item"><div class="e" aria-hidden="true">${i.e}</div><h3>${esc(i.nome)}</h3><p>${esc(i.desc)}</p>
+  <div class="row"><span class="price">${brl(i.preco)}</span><button class="p" data-add="${i.id}">Adicionar</button></div></article>`).join('')}</div>`;
+},
+carrinho(){
+  const l=cartList();
+  if(!l.length) return `<h1>Seu carrinho</h1><div class="box empty">Nenhum item ainda. <a href="#cardapio">Ver o cardápio</a></div>`;
+  return `<h1>Seu carrinho</h1><div class="box">${l.map(i=>`<div class="line"><div>${i.e} <b>${esc(i.nome)}</b><br><small>${brl(i.preco)} cada</small></div>
+  <div class="qty"><button class="s" data-add="${i.id}" data-d="-1" aria-label="Remover um">−</button><b>${i.q}</b><button class="s" data-add="${i.id}" aria-label="Adicionar um">+</button></div></div>`).join('')}
+  <div class="line"><b>Total</b><span class="price">${brl(total())}</span></div></div>
+  <button class="p" onclick="location.hash='pagamento'">Ir para o pagamento</button>`;
+},
+pagamento(){
+  if(!count()) return `<h1>Pagamento</h1><div class="box empty">Seu carrinho está vazio. <a href="#cardapio">Escolher itens</a></div>`;
+  return `<h1>Pagamento</h1><p class="sub">${count()} item(ns) · total ${brl(total())}</p>
+  <form id="pay" class="box"><label for="end">Endereço de entrega</label><input id="end" required minlength="8" placeholder="Rua, número, bairro" autocomplete="street-address">
+  <label for="obs">Observações</label><textarea id="obs" rows="2" placeholder="Ex.: sem cebola"></textarea>
+  <label>Forma de pagamento</label><div class="pay">
+  <label><input type="radio" name="m" value="pix" checked> Pix</label>
+  <label><input type="radio" name="m" value="cartao"> Cartão</label>
+  <label><input type="radio" name="m" value="dinheiro"> Dinheiro</label></div>
+  <p class="err" id="perr"></p><button class="p" id="paybtn" type="submit">Pagar ${brl(total())}</button></form>`;
+},
+pedidos(){
+  if(!S.orders.length) return `<h1>Meus pedidos</h1><div class="box empty">Você ainda não fez pedidos.</div>`;
+  return `<h1>Meus pedidos</h1>`+S.orders.map(p=>{
+    const i=STATUS.indexOf(p.status);
+    return `<div class="box"><div class="row"><b>Pedido #${p.id}</b><span class="tag">${esc(p.status)}</span></div>
+    <div class="steps" aria-hidden="true">${STATUS.map((_,k)=>`<span class="${k<=i?'d':''}"></span>`).join('')}</div>
+    <p class="sub" style="margin:6px 0">${p.itens.map(x=>x.q+'× '+esc(x.nome)).join(', ')}</p>
+    <div class="row"><span class="price">${brl(p.total)}</span>${p.status==='Entregue'?`<a href="#avaliacoes" data-rate="${p.id}">Avaliar</a>`:''}</div></div>`}).join('');
+},
+avaliacoes(){
+  const done=S.orders.filter(p=>p.status==='Entregue'&&!S.reviews.some(r=>r.pedidoId===p.id));
+  return `<h1>Avaliações</h1>`+(done.length?done.map(p=>`<form class="box rv" data-id="${p.id}"><b>Pedido #${p.id}</b>
+  <div class="stars" data-n="0">${[1,2,3,4,5].map(n=>`<button type="button" data-star="${n}" aria-label="${n} estrelas">★</button>`).join('')}</div>
+  <label>Comentário</label><textarea rows="2" placeholder="Conte como foi"></textarea><br><button class="p" type="submit" style="margin-top:10px">Enviar avaliação</button></form>`).join('')
+  :`<div class="box empty">Nenhum pedido entregue para avaliar agora.</div>`)+
+  (S.reviews.length?`<h3>Já enviadas</h3>`+S.reviews.map(r=>`<div class="box"><b>Pedido #${r.pedidoId}</b> <span style="color:var(--acc2)">${'★'.repeat(r.nota)}</span><p class="sub" style="margin:4px 0 0">${esc(r.comentario||'Sem comentário')}</p></div>`).join(''):'');
+}
+};
+
+/* ========= RENDER ========= */
+function render(){
+  const r=V[route()]?route():'cardapio';
+  document.getElementById('mode').textContent=API.useMock?'modo demonstração':'conectado à API';
+  document.getElementById('nav').innerHTML=[['cardapio','Cardápio'],['carrinho','Carrinho'],['pedidos','Pedidos'],['avaliacoes','Avaliações']]
+   .map(([k,t])=>`<a href="#${k}" class="${(r===k||(r==='pagamento'&&k==='carrinho'))?'on':''}">${t}${k==='carrinho'&&count()?`<b>${count()}</b>`:''}</a>`).join('');
+  const app=document.getElementById('app');
+  if(S.loading){app.innerHTML='<p class="sub">Carregando…</p>';return;}
+  if(S.erro){app.innerHTML=`<p class="err">${esc(S.erro)}</p><button class="p" onclick="boot()">Tentar de novo</button>`;return;}
+  app.innerHTML=V[r]();
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-add],[data-cat],[data-star]'); if(!t) return;
+  if(t.dataset.add) add(t.dataset.add,+(t.dataset.d||1));
+  if(t.dataset.cat){S.cat=t.dataset.cat;render();}
+  if(t.dataset.star){const box=t.parentElement;box.dataset.n=t.dataset.star;[...box.children].forEach((b,i)=>b.classList.toggle('on',i<+t.dataset.star));}
+});
+document.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(e.target.id==='pay'){
+    const btn=document.getElementById('paybtn'),err=document.getElementById('perr');btn.disabled=true;err.textContent='';
+    try{
+      const itens=cartList().map(i=>({id:i.id,nome:i.nome,preco:i.preco,q:i.q}));
+      const ped=await api('pedido','/pedidos',{method:'POST',body:JSON.stringify({itens,total:total(),endereco:document.getElementById('end').value,obs:document.getElementById('obs').value})});
+      await api('pagamento','/pagamentos',{method:'POST',body:JSON.stringify({pedidoId:ped.id,valor:total(),metodo:e.target.m.value})});
+      S.cart={};await loadOrders();toast('Pedido #'+ped.id+' confirmado!');location.hash='pedidos';
+    }catch(x){err.textContent='Não foi possível concluir: '+x.message;btn.disabled=false;}
+  }
+  if(e.target.classList.contains('rv')){
+    const nota=+e.target.querySelector('.stars').dataset.n; if(!nota){toast('Escolha de 1 a 5 estrelas');return;}
+    const r={pedidoId:+e.target.dataset.id,nota,comentario:e.target.querySelector('textarea').value};
+    try{await api('avaliacoes','/avaliacoes',{method:'POST',body:JSON.stringify(r)});S.reviews.push(r);toast('Avaliação enviada');render();}
+    catch(x){toast('Erro ao enviar: '+x.message);}
+  }
+});
+async function loadOrders(){ S.orders=await api('pedido','/pedidos'); }
+async function boot(){
+  S.loading=true;S.erro='';render();
+  try{ S.itens=await api('cardapio','/itens'); await loadOrders(); S.reviews=await api('avaliacoes','/avaliacoes'); }
+  catch(x){S.erro='Não conseguimos carregar os dados: '+x.message;}
+  S.loading=false;render();
+}
+window.addEventListener('hashchange',async()=>{ if(route()==='pedidos'||route()==='avaliacoes'){try{await loadOrders();}catch(e){}} render();window.scrollTo(0,0);});
+boot();
+</script>
+</body>
+</html>

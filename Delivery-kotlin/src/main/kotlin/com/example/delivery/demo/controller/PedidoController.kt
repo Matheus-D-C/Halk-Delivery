@@ -23,15 +23,21 @@ class PedidoController(
     @GetMapping("/{id}")
     fun buscarPorId(@PathVariable id: Long): PedidoResponse = paraResponse(buscarEntidade(id))
 
-    @PatchMapping("/{id}/pagamento")
-    fun atualizarStatusPagamento(
-        @PathVariable id: Long,
-        @RequestBody request: AtualizarPagamentoRequest
+    
+    private val statusValidos = listOf("Recebido", "Preparando", "A caminho", "Entregue")
+    
+    @PatchMapping("/{id}/status")
+    fun atualizarStatus(
+    @PathVariable id: Long,
+    @RequestBody request: AtualizarStatusRequest
     ): PedidoResponse {
-        val pedido = buscarEntidade(id)
-        pedido.pago = request.pago
-        pedido.status = if (request.pago) "Recebido" else "Aguardando pagamento"
-        return paraResponse(pedidoRepository.save(pedido))
+    if (request.status !in statusValidos) {
+        throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Status inválido: ${request.status}")
+    }
+    val pedido = buscarEntidade(id)
+    pedido.status = request.status
+    pedido.pago = true
+    return paraResponse(pedidoRepository.save(pedido))
     }
 
     private fun buscarEntidade(id: Long): Pedido =
@@ -47,7 +53,7 @@ class PedidoController(
     }
 }
 
-data class AtualizarPagamentoRequest(val pago: Boolean)
+data class AtualizarStatusRequest(val status: String)
 
 data class PedidoResponse(
     val id: Long?,

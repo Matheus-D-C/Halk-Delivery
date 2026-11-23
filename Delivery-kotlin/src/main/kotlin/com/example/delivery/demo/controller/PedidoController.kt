@@ -22,6 +22,17 @@ class PedidoController(
 
     @GetMapping("/{id}")
     fun buscarPorId(@PathVariable id: Long): PedidoResponse = paraResponse(buscarEntidade(id))
+    
+    @PatchMapping("/{id}/pagamento")
+    fun atualizarStatusPagamento(
+        @PathVariable id: Long,
+        @RequestBody request: AtualizarPagamentoRequest
+    ): PedidoResponse {
+        val pedido = buscarEntidade(id)
+        pedido.pago = request.pago
+        pedido.status = if (request.pago) "Recebido" else "Aguardando pagamento"
+        return paraResponse(pedidoRepository.save(pedido))
+    }
 
     
     private val statusValidos = listOf("Recebido", "Preparando", "A caminho", "Entregue")
@@ -55,6 +66,7 @@ class PedidoController(
 
 data class AtualizarStatusRequest(val status: String)
 
+data class AtualizarPagamentoRequest(val pago: Boolean)
 data class PedidoResponse(
     val id: Long?,
     val carrinhoId: Long,

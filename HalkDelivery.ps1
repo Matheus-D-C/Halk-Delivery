@@ -17,7 +17,8 @@ $env:DB_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
 # ---------- servicos ----------
 $servicos = @(
   @{ Nome='cardapio';   Porta=8001;             Banco='delivery_cardapio';  Dir='Delivery-python\cardapio_service';  Exe='..\.venv\Scripts\python.exe'; Args='cardapio_main.py' },
-  @{ Nome='kotlin';     Porta=8002;             Banco='delivery_carrinho';  Dir='Delivery-kotlin';                    Exe='cmd.exe';                  Args='/c gradlew.bat bootRun' },
+  @{ Nome='carrinho'; Porta=8002; Banco='delivery_carrinho'; Dir='Carrinho'; Exe='cmd.exe'; Args='/c gradlew.bat bootRun' },
+  @{ Nome='pedido';   Porta=8004; Banco='delivery_pedido';   Dir='Pedido';   Exe='cmd.exe'; Args='/c gradlew.bat bootRun' },
   @{ Nome='pagamento';  Porta=$PORTA_PAGAMENTO; Banco='delivery_pagamento'; Dir='Delivery-python\pagamento_service'; Exe='..\.venv\Scripts\python.exe'; Args='pagamento_main.py' },
   @{ Nome='avaliacoes'; Porta=8005;             Banco='delivery_avaliacao'; Dir='';                                   Exe='node';                     Args='AvaliacaoController.js' }
 )
@@ -96,7 +97,7 @@ try {
       else                                               { $st = 'OFFLINE ' + (UltimaLinha $s.Nome); $cor = 'Red' }
       Write-Host ('  {0,-11} porta {1}   ' -f $s.Nome, $s.Porta) -NoNewline
       Write-Host ($st.PadRight(50).Substring(0, 50)) -ForegroundColor $cor
-      if ($s.Nome -eq 'kotlin' -and $up -and -not $abriu) {
+      if ($s.Nome -eq 'pedido' -and $up -and -not $abriu -and (PortaAberta 8002)) {
         $abriu = $true
         $html = Get-ChildItem -Path $raiz -Filter 'Delivery*Frontend*.html' | Select-Object -First 1
         if ($html) { Start-Process $html.FullName }

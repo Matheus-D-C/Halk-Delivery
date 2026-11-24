@@ -71,7 +71,7 @@ const API = {
   base: {
     cardapio:   'http://localhost:8001',
     carrinho:   'http://localhost:8002/api',
-    pedido:     'http://localhost:8002/api',
+    pedido:     'http://localhost:8004/api',
     pagamento:  'http://localhost:8003',
     avaliacoes: 'http://localhost:8005'
     
@@ -109,12 +109,11 @@ async function mock(svc,path,o={}){
     if(m==='PUT'){ c.clienteId=body.clienteId; c.itemIds=body.itemIds; }
     return wait(c);
   }
-  const mf = path.match(/^\/carrinhos\/(\d+)\/fechar$/);
-  if(svc==='carrinho' && mf && m==='POST'){
-    const c=DB.carrinhos[mf[1]]; if(!c) throw new Error('Carrinho '+mf[1]+' não encontrado');
+  if(svc==='pedido' && path==='/pedidos' && m==='POST'){
+    const c=DB.carrinhos[body.carrinhoId]; if(!c) throw new Error('Carrinho '+body.carrinhoId+' não encontrado');
     if(!c.itemIds.length) throw new Error('Não é possível fechar um carrinho vazio');
     if(DB.pedidos.some(x=>x.carrinhoId===c.id)) throw new Error('Já existe um pedido para o carrinho '+c.id);
-    const p={id:++DB.n,carrinhoId:c.id,pago:false,status:'Aguardando pagamento',endereco:body&&body.endereco,observacao:body&&body.observacao,itemIds:[...c.itemIds]};
+    const p={id:++DB.n,carrinhoId:c.id,pago:false,status:'Aguardando pagamento',endereco:body.endereco,observacao:body.observacao,itemIds:[...c.itemIds]};
     DB.pedidos.unshift(p); return wait(p);
   }
   const mp = path.match(/^\/pedidos\/(\d+)\/pagamento$/);
@@ -259,7 +258,7 @@ document.addEventListener('submit',async e=>{
       if(carrinhoId===null) throw new Error('carrinho não salvo, adicione os itens de novo');
       if(!pedidoPendente){                          // este carrinho já virou pedido? (ex.: a página foi recarregada)
         const existente=(await api('pedido','/pedidos')).find(p=>p.carrinhoId===carrinhoId);
-        pedidoPendente=existente||await api('carrinho','/carrinhos/'+carrinhoId+'/fechar',{method:'POST',body:JSON.stringify({endereco:document.getElementById('end').value,observacao:document.getElementById('obs').value})});
+        pedidoPendente=existente||await api('pedido','/pedidos',{method:'POST',body:JSON.stringify({carrinhoId,endereco:document.getElementById('end').value,observacao:document.getElementById('obs').value})});
       }
       const ped=pedidoPendente;
       if(!ped.pago){

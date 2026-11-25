@@ -11,7 +11,8 @@ import org.springframework.web.server.ResponseStatusException
 @Component
 class CarrinhoClient(@Value("\${carrinho.url:http://localhost:8002}") baseUrl: String) {
 
-    private val http = RestClient.create(baseUrl)
+    private val urlNormalizada = if (baseUrl.startsWith("http")) baseUrl else "http://$baseUrl"
+    private val http = RestClient.create(urlNormalizada)
 
     fun buscar(id: Long): CarrinhoDto =
         try {

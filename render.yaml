@@ -1,0 +1,87 @@
+services:
+  # 1. Serviço de Avaliação (Node.js)
+  - type: web
+    name: halk-avaliacao
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node AvaliacaoController.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Colar no painel do Render: postgresql://postgres.tbmuxxpeoettiirilrqo:Polonorte5!@aws-0-us-west-2.pooler.supabase.com:5432/postgres
+
+  # 2. Serviço de Pagamento (Python / FastAPI)
+  - type: web
+    name: halk-pagamento
+    runtime: python
+    rootDir: pagamento_service
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Mesma URL do Supabase (sem ?pgbouncer=true)
+
+  # 3. Serviço de Cardápio (Python / FastAPI)
+  - type: web
+    name: halk-cardapio
+    runtime: python
+    rootDir: cardapio_service
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Mesma URL do Supabase (sem ?pgbouncer=true)
+
+  # 4. Serviço de Carrinho (Kotlin / Spring Boot via Docker)
+  - type: web
+    name: halk-carrinho
+    runtime: docker
+    rootDir: Carrinho
+    plan: free
+    envVars:
+      - key: DB_HOST
+        value: aws-0-us-west-2.pooler.supabase.com
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres.tbmuxxpeoettiirilrqo
+      - key: DB_PASSWORD
+        sync: false # Colar no painel do Render: Polonorte5!
+      - key: DB_SSLMODE
+        value: require
+
+  # 5. Serviço de Pedido (Kotlin / Spring Boot via Docker)
+  - type: web
+    name: halk-pedido
+    runtime: docker
+    rootDir: Pedido
+    plan: free
+    envVars:
+      - key: DB_HOST
+        value: aws-0-us-west-2.pooler.supabase.com
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres.tbmuxxpeoettiirilrqo
+      - key: DB_PASSWORD
+        sync: false # Colar no painel do Render: Polonorte5!
+      - key: DB_SSLMODE
+        value: require
+      - key: CARRINHO_URL
+        fromService:
+          type: web
+          name: halk-carrinho
+          property: hostport
+
+  # 6. Front-end (Static Site)
+  - type: web
+    name: halk-frontend
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: frontend

@@ -16,6 +16,9 @@ Rotas:
   DELETE /itens/{id}       remove um item
 """
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 from contextlib import asynccontextmanager
 from decimal import Decimal
 from typing import Optional
@@ -26,20 +29,30 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Numeric, String, create_engine, func, select
+from sqlalchemy import Numeric, String, create_engine, func, select, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from starlette.exceptions import HTTPException
 
 # ------------------------------------------------------------------ banco
-DATABASE_URL = os.getenv("DATABASE_URL") or (
-    "mysql+pymysql://"
-    f"{quote_plus(os.getenv('DB_USER', 'root'))}:{quote_plus(os.getenv('DB_PASSWORD', ''))}"
-    f"@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '3306')}"
-    f"/{os.getenv('DB_NAME', 'delivery')}?charset=utf8mb4"
-)
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine)
+def _montar_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if url:
+        url = url.split("?")[0]
+        for prefixo in ("postgres://", "postgresql://"):
+            if url.startswith(prefixo):
+                return "postgresql+psycopg2://" + url[len(prefixo):]
+        return url
+    return (
+        "postgresql+psycopg2://"
+        f"{quote_plus(os.getenv('DB_USER', 'postgres'))}:{quote_plus(os.getenv('DB_PASSWORD', ''))}"
+        f"@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5432')}"
+        f"/{os.getenv('DB_NAME', 'postgres')}"
+    )
 
+
+DATABASE_URL = _montar_url()
+engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_size=3, max_overflow=2)
+SessionLocal = sessionmaker(bind=engine)
 
 class Base(DeclarativeBase):
     pass
@@ -47,7 +60,7 @@ class Base(DeclarativeBase):
 
 class ItemCardapio(Base):
     __tablename__ = "item_cardapio"
-    __table_args__ = {"mysql_charset": "utf8mb4"}  # para guardar emojis
+    __table_args__ = {"schema": "cardapio"}
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     nome: Mapped[str] = mapped_column(String(100))
@@ -87,11 +100,11 @@ def semear_cardapio():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(engine)  # CREATE TABLE IF NOT EXISTS
+    with engine.begin() as conn:
+        conn.execute(text("CREATE SCHEMA IF NOT EXISTS cardapio"))
+    Base.metadata.create_all(engine)  # cria cardapio.item_cardapio
     semear_cardapio()
     yield
-
-
 # ------------------------------------------------------------------ schemas
 class ItemEntrada(BaseModel):
     """Mesmos nomes de campos que o front usa: nome, desc, preco, cat, e."""

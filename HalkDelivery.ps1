@@ -16,10 +16,10 @@ $env:DB_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
 
 # ---------- servicos ----------
 $servicos = @(
-  @{ Nome='cardapio';   Porta=8001;             Banco='delivery_cardapio';  Dir='Delivery-python\cardapio_service';  Exe='..\.venv\Scripts\python.exe'; Args='cardapio_main.py' },
+  @{ Nome='cardapio';   Porta=8001;             Banco='delivery_cardapio';  Dir='Delivery-python\cardapio_service';  Exe='..\.venv\Scripts\python.exe'; Args='main.py' },
   @{ Nome='carrinho'; Porta=8002; Banco='delivery_carrinho'; Dir='Carrinho'; Exe='cmd.exe'; Args='/c gradlew.bat bootRun' },
   @{ Nome='pedido';   Porta=8004; Banco='delivery_pedido';   Dir='Pedido';   Exe='cmd.exe'; Args='/c gradlew.bat bootRun' },
-  @{ Nome='pagamento';  Porta=$PORTA_PAGAMENTO; Banco='delivery_pagamento'; Dir='Delivery-python\pagamento_service'; Exe='..\.venv\Scripts\python.exe'; Args='pagamento_main.py' },
+  @{ Nome='pagamento';  Porta=$PORTA_PAGAMENTO; Banco='delivery_pagamento'; Dir='Delivery-python\pagamento_service'; Exe='..\.venv\Scripts\python.exe'; Args='main.py' },
   @{ Nome='avaliacoes'; Porta=8005;             Banco='delivery_avaliacao'; Dir='';                                   Exe='node';                     Args='AvaliacaoController.js' }
 )
 
